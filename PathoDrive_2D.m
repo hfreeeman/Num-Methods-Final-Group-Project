@@ -84,8 +84,8 @@ S_ave = mean([vine.S],2);
 
 %%%%%%%%%%%%%%%%%%%%% Plot the average of the field %%%%%%%%%%%%%%%%%%%%%%%
 FSize = 14; %fontsize for plots
-figure;plot(tspan,S_ave,'-k','LineWidth',2);
-legend({'Susceptible'},'Location','NorthWest');
+figure;plot(tspan,S_ave,'-k', tspan, P/Ap, tspan, B/Ap, '--', tspan, S, '-.', tspan, L, tspan, I, '--',  tspan, R * .5, '-.','LineWidth',2);
+legend({'Total Population', 'Berry Population', 'Susceptible', 'Latent', 'Infected', 'Removed'},'Location','NorthWest');
 xlabel('time (days)','Fontsize',FSize);
 ylabel('Population (fraction of initial)','Fontsize',FSize)
 title('average epidemic')

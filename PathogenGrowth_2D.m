@@ -42,10 +42,11 @@
 % output: S,L,I,R,P,E,time (vector of simulation times), and B
 
 function [vine] = PathogenGrowth_2D(vine,beta_max,mu_L_target,mu_I,A,...
-    eta,kappa,xi,Gamma,alpha,T,U,V,tspan)
+    eta,kappa,xi,gamma,alpha,T,U,V,tspan)
 
 %declare global variables
 global NpX NpY Nsteps
+% find beta and mu_L using equations 7-9
 
 % set parameters in a cell array
 p{1} = beta_max; %(max rate of new infections)
@@ -58,15 +59,16 @@ p{7} = atand(V./U);      %wind direction
 p{8} = eta;       %release fraction scale factor
 p{9} = kappa;     %release fraction scale factor   
 p{10}= xi;       %release fraction offset
-p{11}= Gamma;    %spore production multiple
+p{11}= gamma;    %spore production multiple
 p{12}= alpha;   %spore production 2nd factor
 
+y = zeros(Nsteps, 8);
 % declare function handles
 odefun = @(t,y,e,g) SLIRPE_model(t,y,e,g,p);
 
 % loop over timesteps (starting at 2)
 for t=2:Nsteps
-
+%tic
     disp(['day=',num2str(tspan(t),'%.2f'),' infected plants=',int2str(sum([vine.IsInfect]))])
     dt=tspan(t)-tspan(t-1); %timestep
 
@@ -119,6 +121,10 @@ for t=2:Nsteps
             %NOTE: recognize that you are only integrating 1 time step!
             %your routine can be more general than that but recognize that
             %this point is in the middle of a time loop!
+            slopes = odefun(t, y0, DepFlux_sum(cnt), vine(cnt).mu_L);
+            y = y0 + dt * slopes;
+       
+
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             % set outputs
@@ -133,11 +139,11 @@ for t=2:Nsteps
 
             %define a threshold for dispersal to start (equiv to 2.5mm diameter
             %sporulating colony (Calonnec et al)
-            if(vine(cnt).I(t)>=0.25^2/4*pi/A)
+            if(vine(cnt).I(t) >= (pi *0.25^2) / (4*A))
                 vine(cnt).IsInfect=true;
             end
             %turn off dispersal if we fall below the above size
-            if(vine(cnt).I(t)<0.25^2/4*pi/A && vine(cnt).IsInfect==true)
+            if(vine(cnt).I(t) < ((pi *0.25^2) / (4*A)) && vine(cnt).IsInfect==true)
                 vine(cnt).IsInfect=false;
             end
         end
@@ -149,6 +155,39 @@ for t=2:Nsteps
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+    % scouting routine: random
+    % starting with maximum values for speed and "optimization"
+    ScoutSpd = 0.05;
+    NumScout = 12;
+    ScoutCount = 0;
+    DetectSize = 20 * ScoutSpd;
+    ScoutPts = round( (ScoutSpd * 36000)  ); % / (LpX * LpY)
+    if t > 1
+       ScoutCount = ScoutCount + 1;
+       for i = 1:NumScout
+           PosToScout = randperm(ScoutPts);
+           SX = 0; SY = 0; ScTime = 0;
+          for j = 1:ScoutPts
+              ScDistance = sqrt((SX - vine(PosToScout(j)).X)^2 + (SY - vine(PosToScout(j)).Y)^2);
+              % update time and positon
+              ScTime = ScTime + (ScDistance / ScoutSpd);
+              SX = vine(PosToScout(j)).X;
+              SY = vine(PosToScout(j)).Y;
+              if ScTime <= 3600
+                  InfectSize = vine(PosToScout(j)).L(t) * A;
+                  if InfectSize >= DetectSize
+                     % simulation success 
+                     fprintf("simulation successful")
+                     return % stop simulation
+                  end
+              else
+                  break
+              end
+          end
+       end
+    end
+end
+%              
+%toc
 end
 
-end

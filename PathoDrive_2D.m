@@ -1,7 +1,7 @@
 % driver script for our 2 dimensional pathogen simulation for ME EN 2450
 % Fall 2023.
 %
-close all;clear all;clc
+close all;clear;clc
 %
 % load Envinronmental Forcing data (U,V,T,tspan)
 load EnvironmentalForcing.mat
@@ -21,7 +21,7 @@ Nsteps = length(T); %number of time steps for integration
 LpX = 1;      %X-direction physical length of a plant in meters
 LpY = 1;      %Y-direction physical length of a plant in meters
 %normalization factor for a plant ('final' susceptible plant surface area in cm^2)
-A   = 5000;     
+A  = 5000;     
 %initial average size of a individual plant in the population 
 % (=model after 30 days with constant temp of 15C + 1 for initial berry size)
 P_i_ave  = 1.33*30*(-0.35968+0.10789*15-0.00214*15*15)*30+1; 
@@ -36,6 +36,9 @@ kappa = 0.75;   %release fraction scale factor
 xi    = -2.0;   %release fraction offset
 Gamma = 1e-2;   %spore production from Calonnec et al 2009 approx scaled as surface area coverage
 alpha = 0.314;  %spore production 2nd factor
+day = 0;
+% find beta and mu_L using equations 7 - 9
+
 
 %%%%%%%%%%%%%%%%%% Initialize individual Plants (vines) %%%%%%%%%%%%%%%%%%%
 % Here we will use a structure (vine) to store all the different variables
@@ -67,6 +70,7 @@ end
 % Randomly select an initial plant for the infection to start at and give
 % it the equivalent of 1 small (0.5cm diameter) spot on a leaf that is infected (latent)
 RandV = randi(NpX*NpY); %a random integer value in the range of the number of vines
+disp(RandV)
 vine(RandV).L(1) = 0.25^2/4*pi/A;
 
 % call the pathogen function
@@ -80,17 +84,50 @@ toc
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 %Calculate stats for entire domain at each time step
 S_ave = mean([vine.S],2);
+L_ave = mean([vine.L],2);
+I_ave = mean([vine.I],2);
+R_ave = mean([vine.R],2);
+P_ave = mean([vine.P],2);
+E_ave = mean([vine.E],2);
+B_ave = mean([vine.B],2);
 %INSERT YOUR CODE HERE to fill in the rest...
+
+
 
 %%%%%%%%%%%%%%%%%%%%% Plot the average of the field %%%%%%%%%%%%%%%%%%%%%%%
 FSize = 14; %fontsize for plots
-figure;plot(tspan,S_ave,'-k', tspan, P/Ap, tspan, B/Ap, '--', tspan, S, '-.', tspan, L, tspan, I, '--',  tspan, R * .5, '-.','LineWidth',2);
+figure;
+plot(tspan, P_ave / A, ...
+    tspan, B_ave / A, "--",...
+    tspan, S_ave, "-.",...
+    tspan, L_ave,      ...
+    tspan, I_ave, "--",...
+    tspan, R_ave, "-.",...
+    'LineWidth', 1.5)
 legend({'Total Population', 'Berry Population', 'Susceptible', 'Latent', 'Infected', 'Removed'},'Location','NorthWest');
 xlabel('time (days)','Fontsize',FSize);
 ylabel('Population (fraction of initial)','Fontsize',FSize)
 title('average epidemic')
 set(gca,'Fontsize',FSize,'Xlim',[0 61]); 
 box on;grid on
+
+figure
+plot(tspan, vine(RandV).P / A, '-k',...
+    tspan, vine(RandV).B / A, '--k',...
+    tspan, vine(RandV).S, '-.m',...
+    tspan, vine(RandV).L, '--g',...
+    tspan, vine(RandV).I, ':b',...
+    tspan, vine(RandV).R, '-.r',...
+    tspan, vine(RandV).E, ':r',...
+    'linewidth', 2);
+legend({'Total Population', 'Berry Population', 'Susceptible', 'Latent', 'Infected', 'Removed'},'Location','NorthWest');
+xlabel('time (days)','Fontsize',FSize);
+ylabel('Population (fraction of initial)','Fontsize',FSize)
+txt = fprintf("initial infection at x = %f, y = %.1f", vine(RandV).X, vine(RandV).Y);
+title(txt)
+set(gca,'Fontsize',FSize,'Xlim',[0 61]); 
+box on;grid on
+
 
 %INSERT YOUR CODE HERE to add plotting of other elements and optional
 %things like movies
